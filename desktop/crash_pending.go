@@ -86,11 +86,5 @@ func (a *App) flushPendingCrash() {
 		_ = os.Remove(path)
 		return
 	}
-	c, err := httpClient()
-	if err != nil {
-		return
-	}
-	if postCrashReport(a.bootContext(), c, crashEndpoint, r) == nil {
-		_ = os.Remove(path)
-	}
+	_ = os.Remove(path)
 }

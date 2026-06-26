@@ -45,7 +45,7 @@ const (
 // sidecar recording exists (e.g. sessions created before the display-recording
 // feature, or synthetic user messages injected by the controller).
 func StripComposePrefixes(content string) string {
-	s := agent.StripTransientUserBlocks(content)
+	s := content
 	s = stripComposeMarker(s, PlanModeMarker)
 	s = stripComposeMarker(s, legacyPlanModeMarker)
 	s = strings.TrimSpace(s)
@@ -104,7 +104,7 @@ func StripReferencedContextPrefix(content string) string {
 // approval, stream recovery, readiness retry, etc.). These should not be shown
 // in the chat UI.
 func IsSyntheticUserMessage(content string) bool {
-	trimmed := strings.TrimSpace(agent.StripTransientUserBlocks(content))
+	trimmed := strings.TrimSpace(content)
 	if trimmed == planApprovedMessage {
 		return true
 	}

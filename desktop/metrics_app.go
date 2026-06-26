@@ -528,11 +528,7 @@ func (a *App) postMetrics(p metricsPayload) bool {
 	if err != nil {
 		return false
 	}
-	c, err := httpClient()
-	if err != nil {
-		return false
-	}
-	c.Timeout = metricsPostTimeout
+	c := &http.Client{Timeout: metricsPostTimeout}
 	req, err := http.NewRequestWithContext(a.bootContext(), http.MethodPost, metricsEndpoint, bytes.NewReader(body))
 	if err != nil {
 		return false

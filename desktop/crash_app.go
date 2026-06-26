@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"regexp"
 	"runtime"
 	"strings"
@@ -239,37 +236,4 @@ func crashReportFromDetail(kind, detail string) (crashReport, error) {
 	r.Message = sanitizeCrashText(detail, maxCrashDetailBytes)
 	r.Message = appendNativeResourceContext(r.Kind, r.Message)
 	return r, nil
-}
-
-func (a *App) ReportCrash(kind, detail string) error {
-	r, err := crashReportFromDetail(kind, detail)
-	if err != nil {
-		return err
-	}
-	c, err := httpClient()
-	if err != nil {
-		return err
-	}
-	return postCrashReport(a.reqCtx(), c, crashEndpoint, r)
-}
-
-func postCrashReport(ctx context.Context, c *http.Client, endpoint string, r crashReport) error {
-	body, err := json.Marshal(r)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("crash endpoint returned %s", resp.Status)
-	}
-	return nil
 }

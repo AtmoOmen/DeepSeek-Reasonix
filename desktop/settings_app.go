@@ -137,7 +137,6 @@ type BotSettingsView struct {
 	QQ               QQBotView           `json:"qq"`
 	Feishu           FeishuBotView       `json:"feishu"`
 	Weixin           WeixinBotView       `json:"weixin"`
-	Connections      []BotConnectionView `json:"connections"`
 }
 
 // SettingsView is the whole Settings panel payload.
@@ -367,7 +366,7 @@ func officialProviderAddedSet(cfg *config.Config) map[string]bool {
 func desktopStartupSettingsFromConfig(cfg *config.Config) DesktopStartupSettingsView {
 	if cfg == nil {
 		return DesktopStartupSettingsView{
-			Bot:                botSettingsView(config.BotConfig{}),
+			Bot:                BotSettingsView{},
 			DesktopLayoutStyle: "workbench",
 			DesktopTheme:       "auto",
 			DesktopThemeStyle:  "graphite",
@@ -378,7 +377,7 @@ func desktopStartupSettingsFromConfig(cfg *config.Config) DesktopStartupSettings
 		}
 	}
 	return DesktopStartupSettingsView{
-		Bot:                botSettingsView(cfg.Bot),
+		Bot:                BotSettingsView{},
 		DesktopLanguage:    cfg.DesktopLanguage(),
 		DesktopLayoutStyle: cfg.DesktopLayoutStyle(),
 		DesktopTheme:       cfg.DesktopTheme(),
@@ -417,7 +416,7 @@ func (a *App) Settings() SettingsView {
 			},
 			Sandbox:                 SandboxView{Bash: "enforce", AllowWrite: []string{}, Shell: "auto"},
 			Agent:                   AgentView{PlannerMaxSteps: 0, ColdResumePrune: true, ReasoningLanguage: "auto"},
-			Bot:                     botSettingsView(config.BotConfig{}),
+			Bot:                     BotSettingsView{},
 			AutoPlan:                "off",
 			DesktopLayoutStyle:      "workbench",
 			DesktopTheme:            "auto",
@@ -475,7 +474,7 @@ func (a *App) Settings() SettingsView {
 			},
 		},
 		Agent:                   AgentView{Temperature: cfg.Agent.Temperature, MaxSteps: cfg.Agent.MaxSteps, PlannerMaxSteps: cfg.Agent.PlannerMaxSteps, SystemPrompt: cfg.Agent.SystemPrompt, ColdResumePrune: cfg.ColdResumePruneEnabled(), ReasoningLanguage: cfg.ReasoningLanguage()},
-		Bot:                     botSettingsView(cfg.Bot),
+		Bot:                     BotSettingsView{},
 		DesktopLanguage:         cfg.DesktopLanguage(),
 		DesktopLayoutStyle:      cfg.DesktopLayoutStyle(),
 		DesktopTheme:            cfg.DesktopTheme(),
@@ -506,56 +505,6 @@ func (a *App) Settings() SettingsView {
 	return v
 }
 
-func botSettingsView(b config.BotConfig) BotSettingsView {
-	mode := strings.TrimSpace(b.Feishu.Mode)
-	if mode == "" {
-		mode = "webhook"
-	}
-	return BotSettingsView{
-		Enabled:          b.Enabled,
-		Model:            b.Model,
-		ToolApprovalMode: normalizeBotConnectionToolApprovalMode(b.ToolApprovalMode),
-		MaxSteps:         b.MaxSteps,
-		DebounceMs:       b.DebounceMs,
-		Allowlist: BotAllowlistView{
-			Enabled:      b.Allowlist.Enabled,
-			AllowAll:     b.Allowlist.AllowAll,
-			QQUsers:      nonNil(b.Allowlist.QQUsers),
-			FeishuUsers:  nonNil(b.Allowlist.FeishuUsers),
-			WeixinUsers:  nonNil(b.Allowlist.WeixinUsers),
-			QQGroups:     nonNil(b.Allowlist.QQGroups),
-			FeishuGroups: nonNil(b.Allowlist.FeishuGroups),
-			WeixinGroups: nonNil(b.Allowlist.WeixinGroups),
-		},
-		QQ: QQBotView{
-			Enabled:      b.QQ.Enabled,
-			AppID:        b.QQ.AppID,
-			AppSecretEnv: b.QQ.AppSecretEnv,
-			SecretSet:    strings.TrimSpace(b.QQ.AppSecretEnv) != "" && os.Getenv(b.QQ.AppSecretEnv) != "",
-			Sandbox:      b.QQ.Sandbox,
-		},
-		Feishu: FeishuBotView{
-			Enabled:           b.Feishu.Enabled,
-			Domain:            orDefault(strings.TrimSpace(b.Feishu.Domain), "feishu"),
-			AppID:             b.Feishu.AppID,
-			AppSecretEnv:      b.Feishu.AppSecretEnv,
-			SecretSet:         strings.TrimSpace(b.Feishu.AppSecretEnv) != "" && os.Getenv(b.Feishu.AppSecretEnv) != "",
-			VerificationToken: b.Feishu.VerificationToken,
-			Mode:              mode,
-			WebhookPort:       b.Feishu.WebhookPort,
-			RequireMention:    b.Feishu.RequireMention,
-		},
-		Weixin: WeixinBotView{
-			Enabled:   b.Weixin.Enabled,
-			AccountID: b.Weixin.AccountID,
-			TokenEnv:  b.Weixin.TokenEnv,
-			TokenSet:  strings.TrimSpace(b.Weixin.TokenEnv) != "" && os.Getenv(b.Weixin.TokenEnv) != "",
-			APIBase:   b.Weixin.APIBase,
-		},
-		Connections: botConnectionViews(b.Connections),
-	}
-}
-
 func orDefault(s, def string) string {
 	if strings.TrimSpace(s) == "" {
 		return def
@@ -563,14 +512,6 @@ func orDefault(s, def string) string {
 	return s
 }
 
-func botDomainOrDefault(domain string) string {
-	if strings.EqualFold(strings.TrimSpace(domain), "lark") {
-		return "lark"
-	}
-	return "feishu"
-}
-
-// --- apply (write config, then rebuild the controller so it's live) ---
 
 // applyConfigChange mutates the user-global config and rebuilds the controller so
 // the change takes effect this session. Desktop settings such as providers and
@@ -642,9 +583,6 @@ func (a *App) loadDesktopUserConfigForEdit() (*config.Config, string, error) {
 		if err := normalizeLegacyDesktopProviderAccessForSettings(cfg, userPath); err != nil {
 			return nil, "", err
 		}
-		if err := a.migrateLegacyBotConfigToUser(cfg, userPath); err != nil {
-			return nil, "", err
-		}
 		return cfg, userPath, nil
 	}
 	cfg := config.LoadForEdit(userPath)
@@ -660,9 +598,6 @@ func (a *App) loadDesktopUserConfigForEdit() (*config.Config, string, error) {
 		return nil, "", err
 	}
 	legacyCfg.ConfigVersion = config.Default().ConfigVersion
-	if err := migrateLegacyBotConfigToUser(cfg, legacyCfg, userPath); err != nil {
-		return nil, "", err
-	}
 	return legacyCfg, userPath, nil
 }
 
@@ -675,13 +610,6 @@ func (a *App) loadDesktopUserConfigForView() (*config.Config, string, error) {
 		cfg := config.LoadForEditWithoutCredentials(userPath)
 		if err := normalizeLegacyDesktopProviderAccessForSettings(cfg, userPath); err != nil {
 			return nil, "", err
-		}
-		legacyPath := config.SourcePathForRoot(a.activeWorkspaceRoot())
-		if legacyPath != "" && !sameConfigPath(legacyPath, userPath) {
-			legacyCfg := config.LoadForEditWithoutCredentials(legacyPath)
-			if err := migrateLegacyBotConfigToUser(cfg, legacyCfg, userPath); err != nil {
-				return nil, "", err
-			}
 		}
 		return cfg, userPath, nil
 	}
@@ -698,71 +626,7 @@ func (a *App) loadDesktopUserConfigForView() (*config.Config, string, error) {
 		return nil, "", err
 	}
 	legacyCfg.ConfigVersion = config.Default().ConfigVersion
-	if err := migrateLegacyBotConfigToUser(cfg, legacyCfg, userPath); err != nil {
-		return nil, "", err
-	}
 	return legacyCfg, userPath, nil
-}
-
-func (a *App) migrateLegacyBotConfigToUser(userCfg *config.Config, userPath string) error {
-	if userCfg == nil {
-		return nil
-	}
-	legacyPath := config.SourcePathForRoot(a.activeWorkspaceRoot())
-	if legacyPath == "" || sameConfigPath(legacyPath, userPath) {
-		return nil
-	}
-	legacyCfg := config.LoadForEdit(legacyPath)
-	return migrateLegacyBotConfigToUser(userCfg, legacyCfg, userPath)
-}
-
-func migrateLegacyBotConfigToUser(userCfg, legacyCfg *config.Config, userPath string) error {
-	if userCfg == nil || legacyCfg == nil || desktopBotConfigConfigured(userCfg.Bot) {
-		return nil
-	}
-	if !desktopBotConfigConfigured(legacyCfg.Bot) {
-		return nil
-	}
-	userCfg.Bot = legacyCfg.Bot
-	if err := userCfg.SaveTo(userPath); err != nil {
-		return fmt.Errorf("migrate legacy bot config: %w", err)
-	}
-	return nil
-}
-
-func desktopBotConfigConfigured(bot config.BotConfig) bool {
-	defaults := config.Default().Bot
-	if bot.Enabled || strings.TrimSpace(bot.Model) != "" || len(bot.Connections) > 0 {
-		return true
-	}
-	if (bot.MaxSteps != 0 && bot.MaxSteps != defaults.MaxSteps) || (bot.DebounceMs != 0 && bot.DebounceMs != defaults.DebounceMs) {
-		return true
-	}
-	if bot.Allowlist.AllowAll ||
-		len(bot.Allowlist.QQUsers)+len(bot.Allowlist.FeishuUsers)+len(bot.Allowlist.WeixinUsers) > 0 ||
-		len(bot.Allowlist.QQGroups)+len(bot.Allowlist.FeishuGroups)+len(bot.Allowlist.WeixinGroups) > 0 {
-		return true
-	}
-	if bot.QQ.Enabled || strings.TrimSpace(bot.QQ.AppID) != "" || bot.QQ.AppSecretEnv != defaults.QQ.AppSecretEnv || bot.QQ.Sandbox != defaults.QQ.Sandbox {
-		return true
-	}
-	if bot.Feishu.Enabled ||
-		strings.TrimSpace(bot.Feishu.AppID) != "" ||
-		bot.Feishu.Domain != defaults.Feishu.Domain ||
-		bot.Feishu.AppSecretEnv != defaults.Feishu.AppSecretEnv ||
-		strings.TrimSpace(bot.Feishu.VerificationToken) != "" ||
-		bot.Feishu.Mode != defaults.Feishu.Mode ||
-		bot.Feishu.WebhookPort != defaults.Feishu.WebhookPort ||
-		bot.Feishu.RequireMention != defaults.Feishu.RequireMention {
-		return true
-	}
-	if bot.Weixin.Enabled ||
-		bot.Weixin.AccountID != defaults.Weixin.AccountID ||
-		bot.Weixin.TokenEnv != defaults.Weixin.TokenEnv ||
-		bot.Weixin.APIBase != defaults.Weixin.APIBase {
-		return true
-	}
-	return false
 }
 
 func normalizeLegacyDesktopProviderAccessForSettings(cfg *config.Config, path string) error {
@@ -1307,7 +1171,7 @@ func (a *App) FetchProviderModels(p ProviderView) ([]string, error) {
 		APIKeyEnv: p.APIKeyEnv,
 	}
 	e.ResolveAPIKeyForRoot(a.activeWorkspaceRoot())
-	ctx, cancel := context.WithTimeout(a.reqCtx(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(a.bootContext(), 15*time.Second)
 	defer cancel()
 	models, err := e.FetchModels(ctx)
 	if err != nil {
@@ -1682,78 +1546,6 @@ func (a *App) SetNetwork(n NetworkView) error {
 			},
 		})
 	})
-}
-
-func (a *App) SetBotSettings(b BotSettingsView) error {
-	err := a.applyConfigOnly(func(c *config.Config) error {
-		c.Bot.Enabled = b.Enabled
-		c.Bot.Model = strings.TrimSpace(b.Model)
-		c.Bot.ToolApprovalMode = normalizeBotConnectionToolApprovalMode(b.ToolApprovalMode)
-		c.Bot.MaxSteps = b.MaxSteps
-		c.Bot.DebounceMs = b.DebounceMs
-		c.Bot.Allowlist = config.BotAllowlist{
-			Enabled:      b.Allowlist.Enabled,
-			AllowAll:     b.Allowlist.AllowAll,
-			QQUsers:      trimList(b.Allowlist.QQUsers),
-			FeishuUsers:  trimList(b.Allowlist.FeishuUsers),
-			WeixinUsers:  trimList(b.Allowlist.WeixinUsers),
-			QQGroups:     trimList(b.Allowlist.QQGroups),
-			FeishuGroups: trimList(b.Allowlist.FeishuGroups),
-			WeixinGroups: trimList(b.Allowlist.WeixinGroups),
-		}
-		c.Bot.QQ = config.QQBotConfig{
-			Enabled:      b.QQ.Enabled,
-			AppID:        strings.TrimSpace(b.QQ.AppID),
-			AppSecretEnv: strings.TrimSpace(b.QQ.AppSecretEnv),
-			Sandbox:      b.QQ.Sandbox,
-		}
-		c.Bot.Feishu = config.FeishuBotConfig{
-			Enabled:           b.Feishu.Enabled,
-			Domain:            botDomainOrDefault(b.Feishu.Domain),
-			AppID:             strings.TrimSpace(b.Feishu.AppID),
-			AppSecretEnv:      strings.TrimSpace(b.Feishu.AppSecretEnv),
-			VerificationToken: strings.TrimSpace(b.Feishu.VerificationToken),
-			Mode:              strings.TrimSpace(b.Feishu.Mode),
-			WebhookPort:       b.Feishu.WebhookPort,
-			RequireMention:    b.Feishu.RequireMention,
-		}
-		c.Bot.Weixin = config.WeixinBotConfig{
-			Enabled:   b.Weixin.Enabled,
-			AccountID: strings.TrimSpace(b.Weixin.AccountID),
-			TokenEnv:  strings.TrimSpace(b.Weixin.TokenEnv),
-			APIBase:   strings.TrimRight(strings.TrimSpace(b.Weixin.APIBase), "/"),
-		}
-		c.Bot.Connections = botConnectionConfigs(b.Connections)
-		return nil
-	})
-	if err == nil {
-		a.refreshBotRuntimeAsync()
-	}
-	return err
-}
-
-func (a *App) SetBotSecret(envName, value string) error {
-	envName = strings.TrimSpace(envName)
-	if envName == "" {
-		return fmt.Errorf("bot secret env name is empty")
-	}
-	if err := upsertDotEnv(envName, value); err != nil {
-		return err
-	}
-	a.refreshBotRuntimeAsync()
-	return nil
-}
-
-func (a *App) ClearBotSecret(envName string) error {
-	envName = strings.TrimSpace(envName)
-	if envName == "" {
-		return fmt.Errorf("bot secret env name is empty")
-	}
-	if err := removeDotEnv(envName); err != nil {
-		return err
-	}
-	a.refreshBotRuntimeAsync()
-	return nil
 }
 
 // SetCloseBehavior updates desktop-only window close behavior without rebuilding

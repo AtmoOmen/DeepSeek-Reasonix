@@ -13,7 +13,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { create } from "zustand";
 
-import type { SettingsInitialFocus } from "../components/SettingsPanel";
+import type {} from "../components/SettingsPanel";
 import { shouldShowStartupSplash } from "../components/StartupSplash";
 import type { SessionMeta, SettingsTab } from "../lib/types";
 
@@ -21,7 +21,6 @@ import { applySetState } from "./setState";
 
 export type OverlayState = {
   settingsTarget: SettingsTab | null;
-  settingsFocus: SettingsInitialFocus | null;
   paletteOpen: boolean;
   paletteSessions: SessionMeta[];
   shortcutsOpen: boolean;
@@ -33,7 +32,6 @@ export type OverlayState = {
   startupSplashVisible: boolean;
   needsOnboarding: boolean | null;
   setSettingsTarget: Dispatch<SetStateAction<SettingsTab | null>>;
-  setSettingsFocus: Dispatch<SetStateAction<SettingsInitialFocus | null>>;
   setPaletteOpen: Dispatch<SetStateAction<boolean>>;
   setPaletteSessions: Dispatch<SetStateAction<SessionMeta[]>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
@@ -48,7 +46,6 @@ export type OverlayState = {
 
 export const useOverlayStore = create<OverlayState>((set) => ({
   settingsTarget: null,
-  settingsFocus: null,
   paletteOpen: false,
   paletteSessions: [],
   shortcutsOpen: false,
@@ -60,7 +57,6 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   startupSplashVisible: shouldShowStartupSplash(),
   needsOnboarding: null,
   setSettingsTarget: (update) => set((s) => ({ settingsTarget: applySetState(s.settingsTarget, update) })),
-  setSettingsFocus: (update) => set((s) => ({ settingsFocus: applySetState(s.settingsFocus, update) })),
   setPaletteOpen: (update) => set((s) => ({ paletteOpen: applySetState(s.paletteOpen, update) })),
   setPaletteSessions: (update) => set((s) => ({ paletteSessions: applySetState(s.paletteSessions, update) })),
   setShortcutsOpen: (update) => set((s) => ({ shortcutsOpen: applySetState(s.shortcutsOpen, update) })),

@@ -7,7 +7,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"reasonix/internal/agent"
 	"reasonix/internal/nilutil"
 )
 
@@ -79,7 +78,7 @@ func (c *Controller) shouldAutoPlan(ctx context.Context, input string) bool {
 // planner because the executor session, not the planner session, owns the
 // previous assistant answer they refer to.
 func TaskWarrantsPlanner(input string) bool {
-	text := strings.TrimSpace(agent.StripTransientUserBlocks(input))
+	text := strings.TrimSpace(input)
 	text = stripActiveGoalBlock(text)
 	if text == "" || strings.HasPrefix(text, "/") || strings.HasPrefix(text, PlanModeMarker) {
 		return false

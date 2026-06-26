@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"time"
 
 	"reasonix/internal/config"
 )
@@ -64,10 +65,7 @@ func (a *App) sendStartupPing() {
 	if err != nil {
 		return
 	}
-	c, err := httpClient()
-	if err != nil {
-		return
-	}
+	c := &http.Client{Timeout: 10 * time.Second}
 	_ = postStartupPing(a.bootContext(), c, pingEndpoint, startupPing{
 		InstallID: id,
 		Version:   version,

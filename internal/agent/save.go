@@ -397,7 +397,7 @@ func SessionPreviewFromMessages(msgs []provider.Message) (string, int) {
 		if m.Role == provider.RoleUser {
 			turns++
 			if first == "" {
-				first = truncatePreview(UserPreviewText(m.Content))
+				first = truncatePreview(m.Content)
 			}
 		}
 	}
@@ -424,7 +424,7 @@ func previewSession(path string) (string, int) {
 		if m.Role == provider.RoleUser {
 			turns++
 			if first == "" {
-				first = truncatePreview(UserPreviewText(m.Content))
+				first = truncatePreview(m.Content)
 			}
 		}
 	}

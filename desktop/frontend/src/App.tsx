@@ -46,7 +46,6 @@ import { UndoRewindBanner } from "./components/UndoRewindBanner";
 import { ClearContextCard } from "./components/ClearContextCard";
 import { StatusBar } from "./components/StatusBar";
 import { CommandPalette, type PaletteItem } from "./components/CommandPalette";
-import { UpdateBanner } from "./components/UpdateBanner";
 import { ContextPanel } from "./components/ContextPanel";
 import { WorkspacePanel } from "./components/WorkspacePanel";
 import { Tooltip } from "./components/Tooltip";
@@ -221,7 +220,7 @@ type SidebarImConnectionDetailProps = {
   onClose: () => void;
   onOpenSession: () => void;
   onOpenSettings: () => void;
-  onManageAllowlist: () => void;
+  onManageAllowlist?: () => void;
 };
 
 function isSidebarImConnection(connection: BotConnectionView): boolean {
@@ -846,11 +845,8 @@ export default function App() {
   const setNeedsOnboarding = useOverlayStore((s) => s.setNeedsOnboarding);
   const settingsTarget = useOverlayStore((s) => s.settingsTarget);
   const setSettingsTarget = useOverlayStore((s) => s.setSettingsTarget);
-  const settingsFocus = useOverlayStore((s) => s.settingsFocus);
-  const setSettingsFocus = useOverlayStore((s) => s.setSettingsFocus);
   const [desktopLayoutStyle, setDesktopLayoutStyle] = useState<DesktopLayoutStyle>("workbench");
   const singleSurfaceLayout = desktopLayoutStyle === "workbench" || desktopLayoutStyle === "creation";
-  const [startupUpdateChecksEnabled, setStartupUpdateChecksEnabled] = useState<boolean | null>(null);
   const [histView, setHistView] = useState<HistoryViewState | null>(null);
   const paletteOpen = useOverlayStore((s) => s.paletteOpen);
   const setPaletteOpen = useOverlayStore((s) => s.setPaletteOpen);
@@ -964,16 +960,8 @@ export default function App() {
   const openBotSettings = useCallback(() => {
     closeTransientOverlays();
     setSidebarImDetailConnectionId("");
-    setSettingsFocus(null);
-    setSettingsTarget("bots");
   }, [closeTransientOverlays]);
 
-  const openBotAllowlistSettings = useCallback((connectionId: string) => {
-    closeTransientOverlays();
-    setSidebarImDetailConnectionId("");
-    setSettingsFocus({ target: "bot-allowlist", connectionId });
-    setSettingsTarget("bots");
-  }, [closeTransientOverlays]);
 
   const pulseSidebarToggle = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -1050,7 +1038,6 @@ export default function App() {
       applyTheme(nextTheme, nextStyle, { persist: false });
       setDesktopLayoutStyle(normalizeDesktopLayoutStyle(settings.desktopLayoutStyle));
       setLocalePref(normalizeLangPref(settings.desktopLanguage));
-      setStartupUpdateChecksEnabled(settings.checkUpdates !== false);
       setStatusBarStyle(settings.statusBarStyle === "text" ? "text" : "icon");
       setStatusBarItems(normalizeStatusBarItems(settings.statusBarItems));
     },
@@ -1079,7 +1066,6 @@ export default function App() {
     };
     void syncDesktopPreferences().catch((e) => {
       console.warn("desktop preferences sync failed", e);
-      setStartupUpdateChecksEnabled(true);
     });
     return () => {
       cancelled = true;
@@ -2777,7 +2763,6 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     closeTransientOverlays();
-                    setSettingsTarget("bots");
                   }}
                 >
                   <MessageSquare size={14} aria-hidden="true" />
@@ -3130,7 +3115,6 @@ export default function App() {
                   aria-label={t("shortcuts.cheatsheetTitle")}
                   onClick={() => {
                     closeTransientOverlays();
-                    setSettingsFocus(null);
                     setSettingsTarget("shortcuts");
                   }}
                 >
@@ -3173,15 +3157,12 @@ export default function App() {
             <div className="banner banner--error">{t("topbar.startupError", { msg: state.meta.startupErr })}</div>
           )}
 
-          <UpdateBanner enabled={startupUpdateChecksEnabled === true} />
-
           <main className="main">
             {sidebarImDetailConnection ? (
               <SidebarImConnectionDetail
                 connection={sidebarImDetailConnection}
                 onClose={() => setSidebarImDetailConnectionId("")}
                 onOpenSettings={openBotSettings}
-                onManageAllowlist={() => openBotAllowlistSettings(sidebarImDetailConnection.connectionId)}
                 onOpenSession={() => void openSidebarImConnectionSession(sidebarImDetailConnection)}
               />
             ) : (
@@ -3448,10 +3429,8 @@ export default function App() {
         <Suspense fallback={null}>
           <SettingsPanel
             initialTab={settingsTarget}
-            initialFocus={settingsFocus ?? undefined}
             agentRunning={state.running}
             onClose={() => {
-              setSettingsFocus(null);
               setSettingsTarget(null);
             }}
             onChanged={(settings) => {

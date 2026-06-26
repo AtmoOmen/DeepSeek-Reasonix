@@ -134,8 +134,6 @@ type App struct {
 	tray                *desktopTray
 
 	mediaTokens *mediaTokenStore
-	botInstalls map[string]*botInstallSession
-	botRuntime  *desktopBotRuntime
 
 	metrics atomic.Pointer[metricsAggregator] // non-nil only when desktop.metrics is opted in; swapped live by SetDesktopMetrics
 
@@ -329,8 +327,6 @@ func NewApp() *App {
 		tabs:             map[string]*WorkspaceTab{},
 		detachedSessions: map[string]*WorkspaceTab{},
 		mediaTokens:      newMediaTokenStore(),
-		botInstalls:      map[string]*botInstallSession{},
-		botRuntime:       newDesktopBotRuntime(),
 	}
 }
 
@@ -364,7 +360,6 @@ func (a *App) startup(ctx context.Context) {
 	a.heartbeat.Start()
 
 	go a.restoreOrBuildTabs()
-	a.goSafe("refreshBotRuntime", a.refreshBotRuntime)
 	a.goSafe("sendStartupPing", a.sendStartupPing)
 	a.goSafe("flushMetrics", a.flushMetrics)
 	a.goSafe("flushPendingCrash", a.flushPendingCrash)
@@ -581,7 +576,6 @@ func (a *App) shutdown(context.Context) {
 	if a.heartbeat != nil {
 		a.heartbeat.Stop()
 	}
-	a.stopBotRuntime()
 	a.stopTray()
 	// Save window geometry synchronously from Go so it's persisted even if the
 	// frontend's beforeunload promise hasn't resolved yet.

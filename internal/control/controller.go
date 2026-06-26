@@ -41,7 +41,6 @@ import (
 	"reasonix/internal/i18n"
 	"reasonix/internal/jobs"
 	"reasonix/internal/memory"
-	"reasonix/internal/memorycompiler"
 	"reasonix/internal/nilutil"
 	"reasonix/internal/permission"
 	"reasonix/internal/plugin"
@@ -1374,18 +1373,8 @@ func (c *Controller) SetReasoningLanguage(lang string) {
 	}
 }
 
-// SetMemoryCompilerEnabled updates the Memory v5 runtime for subsequent turns
-// without rebuilding the controller or changing the stable provider prefix.
-func (c *Controller) SetMemoryCompilerEnabled(enabled bool) {
-	if c == nil || c.executor == nil {
-		return
-	}
-	var rt *memorycompiler.Runtime
-	if enabled {
-		rt = memorycompiler.New(config.MemoryCompilerDir(c.workspaceRoot))
-	}
-	c.executor.SetMemoryCompiler(rt)
-}
+// SetMemoryCompilerEnabled is a no-op since memory compiler has been removed.
+func (c *Controller) SetMemoryCompilerEnabled(enabled bool) {}
 
 // PlanMode reports whether outgoing turns currently receive the plan-mode
 // marker. Frontends use it after Compose because auto-plan may flip the mode.
