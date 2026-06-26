@@ -86,7 +86,6 @@ type UIConfig struct {
 // language, terminal colours, or provider-visible prompt/request data.
 type DesktopConfig struct {
 	Language                string   `toml:"language"`                   // auto|en|zh; empty/auto = browser/OS auto-detect
-	LayoutStyle             string   `toml:"layout_style"`               // classic|workbench|creation; desktop layout style
 	Theme                   string   `toml:"theme"`                      // auto|dark|light; empty resolves to auto
 	ThemeStyle              string   `toml:"theme_style"`                // graphite|aurora|slate|carbon|nocturne|amber and legacy aliases
 	CloseBehavior           string   `toml:"close_behavior"`             // quit|background; desktop window close behavior
@@ -148,19 +147,6 @@ func normalizeThemeStyle(style string) string {
 	}
 }
 
-func normalizeDesktopLayoutStyle(style string) string {
-	switch strings.ToLower(strings.TrimSpace(style)) {
-	case "classic":
-		return "classic"
-	case "workbench", "workspace":
-		return "workbench"
-	case "creation":
-		return "creation"
-	default:
-		return "workbench"
-	}
-}
-
 func normalizeCloseBehavior(mode string) string {
 	switch strings.ToLower(strings.TrimSpace(mode)) {
 	case "quit", "exit":
@@ -205,13 +191,9 @@ func (c *Config) DesktopThemeStyle() string {
 	return normalizeThemeStyle(c.Desktop.ThemeStyle)
 }
 
-// DesktopLayoutStyle normalizes the desktop layout style. New installs default
-// to workbench; explicit classic remains respected.
+// DesktopLayoutStyle returns "workbench" — the only available layout.
 func (c *Config) DesktopLayoutStyle() string {
-	if strings.EqualFold(strings.TrimSpace(c.Desktop.ThemeStyle), "workbench") && strings.TrimSpace(c.Desktop.LayoutStyle) == "" {
-		return "workbench"
-	}
-	return normalizeDesktopLayoutStyle(c.Desktop.LayoutStyle)
+	return "workbench"
 }
 
 // DesktopCloseBehavior normalizes the desktop close-window preference. It falls

@@ -225,7 +225,6 @@ func (m *metricsAggregator) observeSettingsSnapshot(c *config.Config) {
 	m.inc("settings_language", lang)
 	m.inc("client_surface", "desktop")
 	m.inc("client_version", metricBucket(version))
-	m.inc("settings_desktop_layout", c.DesktopLayoutStyle())
 	m.inc("settings_theme", c.DesktopTheme())
 	m.inc("settings_theme_style", themeStyle)
 	m.inc("settings_close_behavior", c.DesktopCloseBehavior())

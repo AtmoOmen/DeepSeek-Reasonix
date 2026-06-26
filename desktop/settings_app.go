@@ -154,7 +154,6 @@ type SettingsView struct {
 	Agent                   AgentView       `json:"agent"`
 	Bot                     BotSettingsView `json:"bot"`
 	DesktopLanguage         string          `json:"desktopLanguage"`
-	DesktopLayoutStyle      string          `json:"desktopLayoutStyle"`
 	DesktopTheme            string          `json:"desktopTheme"`
 	DesktopThemeStyle       string          `json:"desktopThemeStyle"`
 	CloseBehavior           string          `json:"closeBehavior"`
@@ -184,10 +183,9 @@ type SettingsView struct {
 // frontend startup. It deliberately excludes providers and credential state so
 // slow keychain/env resolution stays off the first-render path.
 type DesktopStartupSettingsView struct {
-	Bot                BotSettingsView `json:"bot"`
-	DesktopLanguage    string          `json:"desktopLanguage"`
-	DesktopLayoutStyle string          `json:"desktopLayoutStyle"`
-	DesktopTheme       string          `json:"desktopTheme"`
+	Bot             BotSettingsView `json:"bot"`
+	DesktopLanguage string          `json:"desktopLanguage"`
+	DesktopTheme    string          `json:"desktopTheme"`
 	DesktopThemeStyle  string          `json:"desktopThemeStyle"`
 	DisplayMode        string          `json:"displayMode"`
 	StatusBarStyle     string          `json:"statusBarStyle"`
@@ -367,7 +365,6 @@ func desktopStartupSettingsFromConfig(cfg *config.Config) DesktopStartupSettings
 	if cfg == nil {
 		return DesktopStartupSettingsView{
 			Bot:                BotSettingsView{},
-			DesktopLayoutStyle: "workbench",
 			DesktopTheme:       "auto",
 			DesktopThemeStyle:  "graphite",
 			DisplayMode:        "standard",
@@ -379,7 +376,6 @@ func desktopStartupSettingsFromConfig(cfg *config.Config) DesktopStartupSettings
 	return DesktopStartupSettingsView{
 		Bot:                BotSettingsView{},
 		DesktopLanguage:    cfg.DesktopLanguage(),
-		DesktopLayoutStyle: cfg.DesktopLayoutStyle(),
 		DesktopTheme:       cfg.DesktopTheme(),
 		DesktopThemeStyle:  cfg.DesktopThemeStyle(),
 		DisplayMode:        cfg.DesktopDisplayMode(),
@@ -418,7 +414,6 @@ func (a *App) Settings() SettingsView {
 			Agent:                   AgentView{PlannerMaxSteps: 0, ColdResumePrune: true, ReasoningLanguage: "auto"},
 			Bot:                     BotSettingsView{},
 			AutoPlan:                "off",
-			DesktopLayoutStyle:      "workbench",
 			DesktopTheme:            "auto",
 			DesktopThemeStyle:       "graphite",
 			CloseBehavior:           "background",
@@ -476,7 +471,6 @@ func (a *App) Settings() SettingsView {
 		Agent:                   AgentView{Temperature: cfg.Agent.Temperature, MaxSteps: cfg.Agent.MaxSteps, PlannerMaxSteps: cfg.Agent.PlannerMaxSteps, SystemPrompt: cfg.Agent.SystemPrompt, ColdResumePrune: cfg.ColdResumePruneEnabled(), ReasoningLanguage: cfg.ReasoningLanguage()},
 		Bot:                     BotSettingsView{},
 		DesktopLanguage:         cfg.DesktopLanguage(),
-		DesktopLayoutStyle:      cfg.DesktopLayoutStyle(),
 		DesktopTheme:            cfg.DesktopTheme(),
 		DesktopThemeStyle:       cfg.DesktopThemeStyle(),
 		CloseBehavior:           cfg.DesktopCloseBehavior(),
@@ -1606,25 +1600,6 @@ func (a *App) SetTrayLocale(locale string) error {
 // rebuild the active controller and must stay out of provider-visible requests.
 func (a *App) SetDesktopAppearance(theme, style string) error {
 	return a.applyConfigOnly(func(c *config.Config) error { return c.SetDesktopAppearance(theme, style) })
-}
-
-// SetDesktopLayoutStyle updates only the desktop layout style. It does not
-// rebuild the active controller and must stay out of provider-visible requests.
-func (a *App) SetDesktopLayoutStyle(style string) error {
-	normalized := ""
-	if err := a.applyConfigOnly(func(c *config.Config) error {
-		if err := c.SetDesktopLayoutStyle(style); err != nil {
-			return err
-		}
-		normalized = c.DesktopLayoutStyle()
-		return nil
-	}); err != nil {
-		return err
-	}
-	if singleSurfaceLayoutStyle(normalized) {
-		return a.applySingleSurfaceTabPolicy()
-	}
-	return nil
 }
 
 // SetDesktopCheckUpdates updates only the desktop startup update-check

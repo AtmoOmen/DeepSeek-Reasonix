@@ -89,7 +89,6 @@ export function Transcript({
   rewindDisabled = false,
   running = false,
   questionNavigator = true,
-  welcomeVariant = "default",
   creationMode = false,
   actionHoverMenus = false,
   rewindSignal = 0,
@@ -602,7 +601,7 @@ export function Transcript({
         ref={scrollRef}
         onScroll={onScroll}
       >
-        {empty && !hydrating && <Welcome onPrompt={onPrompt} variant={welcomeVariant} />}
+        {empty && !hydrating && <Welcome onPrompt={onPrompt} />}
 
         <LiveStreamContext.Provider value={live}>
           {turnGroups.length > HOT_TURNS && (

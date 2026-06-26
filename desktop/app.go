@@ -473,9 +473,7 @@ func (a *App) restoreOrBuildTabs() {
 		}
 		i18n.DetectLanguage(lang)
 	}
-	if cfgErr != nil || singleSurfaceLayoutStyle(startupCfg.DesktopLayoutStyle()) {
-		f = singleSurfaceTabsFile(f)
-	}
+	f = singleSurfaceTabsFile(f)
 
 	if len(f.Tabs) > 0 {
 		toBuild := make([]*WorkspaceTab, 0, len(f.Tabs))
@@ -3041,11 +3039,7 @@ func (a *App) SwitchWorkspace(dir string) (string, error) {
 }
 
 func (a *App) singleSurfaceLayoutEnabled() bool {
-	cfg, _, err := a.loadDesktopUserConfigForView()
-	if err != nil {
-		return true
-	}
-	return singleSurfaceLayoutStyle(cfg.DesktopLayoutStyle())
+	return true
 }
 
 // HistoryMessage is one prior turn, for the frontend to repopulate its transcript
