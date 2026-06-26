@@ -3723,13 +3723,15 @@ function SandboxSection({ s, busy, apply }: SectionProps) {
           onBlur={() => root !== sb.workspaceRoot && void set({ workspaceRoot: root })}
         />
       </SettingsField>
-      <RuleList
-        list="allow_write"
-        rules={sb.allowWrite}
-        busy={busy}
-        onAdd={(d) => set({ allowWrite: [...sb.allowWrite, d] })}
-        onRemove={(d) => set({ allowWrite: sb.allowWrite.filter((x) => x !== d) })}
-      />
+      {sb.bash !== "off" && (
+        <RuleList
+          list="allow_write"
+          rules={sb.allowWrite}
+          busy={busy}
+          onAdd={(d) => set({ allowWrite: [...sb.allowWrite, d] })}
+          onRemove={(d) => set({ allowWrite: sb.allowWrite.filter((x) => x !== d) })}
+        />
+      )}
     </SettingsSection>
   );
 }

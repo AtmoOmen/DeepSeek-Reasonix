@@ -765,7 +765,12 @@ func (c *Config) WriteRoots() []string {
 // WriteRootsForRoot is like WriteRoots but falls back to fallbackRoot when the
 // config doesn't explicitly set a workspace_root. Desktop tabs pass their
 // project root here so tool confinement is correct without changing cwd.
+// When bash sandbox mode is "off" (unconfined), returns nil so file writers
+// are also unconfined — writes go anywhere.
 func (c *Config) WriteRootsForRoot(fallbackRoot string) []string {
+	if c.BashMode() == "off" {
+		return nil
+	}
 	root := c.expandVars(c.Sandbox.WorkspaceRoot)
 	if root == "" {
 		root = fallbackRoot

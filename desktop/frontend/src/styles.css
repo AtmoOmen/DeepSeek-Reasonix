@@ -8904,6 +8904,7 @@ a[href] {
 .mem-doc[data-doc-scope="local"] { --mem-doc-scope-color: #2dd4bf; }
 .mem-doc[data-doc-scope="ancestor"] { --mem-doc-scope-color: #e0a23a; }
 .mem-doc[data-doc-scope="other"] { --mem-doc-scope-color: var(--fg-faint); }
+.mem-doc[data-doc-scope="system"] { --mem-doc-scope-color: var(--accent); }
 .mem-doc__head {
   display: flex;
   align-items: center;
@@ -9429,6 +9430,10 @@ a[href] {
 }
 .badge--ancestor {
   color: var(--fg-faint);
+}
+.badge--system {
+  color: var(--accent);
+  border-color: var(--accent-soft);
 }
 .badge--feedback {
   color: var(--warn);

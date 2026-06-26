@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronRight, FileText, Pencil, Plus, RefreshCw, Search, Sparkles, Trash2 } from "lucide-react";
+import { Bot, Check, ChevronDown, ChevronRight, FileText, Pencil, Plus, RefreshCw, Search, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { app } from "../lib/bridge";
 import { useT } from "../lib/i18n";
@@ -774,6 +774,48 @@ export function MemorySettingsPage() {
 	const [autoSuggestions, setAutoSuggestions] = useState(readAutoSuggestionsPreference);
 	const autoSuggestionsRequested = useRef(false);
 	const factRefs = useRef<Record<string, HTMLElement | null>>({});
+
+	// System prompt editing state
+	const [systemPrompt, setSystemPrompt] = useState("");
+	const [editingSystemPrompt, setEditingSystemPrompt] = useState(false);
+	const [systemPromptDraft, setSystemPromptDraft] = useState("");
+	const [systemPromptBusy, setSystemPromptBusy] = useState(false);
+	const [systemPromptExpanded, setSystemPromptExpanded] = useState(false);
+
+	// Load system prompt from settings
+	useEffect(() => {
+		app.Settings().then((s) => {
+			const sp = s?.agent?.systemPrompt ?? "";
+			setSystemPrompt(sp);
+		}).catch(() => {});
+	}, []);
+
+	const startEditSystemPrompt = useCallback(() => {
+		setSystemPromptDraft(systemPrompt);
+		setEditingSystemPrompt(true);
+	}, [systemPrompt]);
+
+	const saveSystemPrompt = useCallback(async () => {
+		if (systemPromptBusy) return;
+		setSystemPromptBusy(true);
+		setError(null);
+		try {
+			const s = await app.Settings();
+			const agent = s?.agent ?? { temperature: 0, maxSteps: 0, plannerMaxSteps: 0, systemPrompt: "" };
+			await app.SetAgentParams(agent.temperature, agent.maxSteps, agent.plannerMaxSteps, systemPromptDraft);
+			setSystemPrompt(systemPromptDraft);
+			setEditingSystemPrompt(false);
+		} catch (err) {
+			setError(errorMessage(err));
+		} finally {
+			setSystemPromptBusy(false);
+		}
+	}, [systemPromptBusy, systemPromptDraft]);
+
+	const cancelEditSystemPrompt = useCallback(() => {
+		setEditingSystemPrompt(false);
+		setSystemPromptDraft("");
+	}, []);
 
 	useEffect(() => {
 		app.ListTabs().then((tabList) => {
@@ -1622,6 +1664,72 @@ export function MemorySettingsPage() {
 						<div className="mem-note">{t("memory.instructionFilesHint")}</div>
 					</div>
 				</div>
+
+				{/* System prompt card — always pinned at the top */}
+				<div className="mem-doc mem-doc--system-prompt" data-doc-scope="system">
+					<div className="mem-doc__head">
+						<button
+							className="mem-doc__identity mem-doc__toggle"
+							type="button"
+							aria-expanded={systemPromptExpanded || editingSystemPrompt}
+							onClick={() => {
+								if (!editingSystemPrompt) setSystemPromptExpanded((v) => !v);
+							}}
+							disabled={editingSystemPrompt}
+						>
+							<span className="mem-doc__chevron">
+								{systemPromptExpanded || editingSystemPrompt ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+							</span>
+							<span className="mem-doc__icon"><Bot size={15} /></span>
+							<div>
+								<strong>{t("memory.systemPromptTitle")}</strong>
+								<span className="mem-doc__path">{t("memory.systemPromptScope")}</span>
+								<small>{t("memory.systemPromptHint")}</small>
+							</div>
+						</button>
+						<div className="mem-doc__head-actions">
+							<span className="mem-doc__tag badge--system">{t("memory.systemPromptScope")}</span>
+							{!editingSystemPrompt && (
+								<button
+									className="btn btn--small"
+									onClick={() => startEditSystemPrompt()}
+								>
+									<Pencil size={13} />
+									{t("common.edit")}
+								</button>
+							)}
+						</div>
+					</div>
+					{editingSystemPrompt ? (
+						<div className="mem-doc__edit">
+							<textarea
+								className="mem-textarea"
+								value={systemPromptDraft}
+								onChange={(e) => setSystemPromptDraft(e.target.value)}
+								spellCheck={false}
+							/>
+							<div className="mem-doc__actions">
+								<button
+									className="btn btn--small"
+									onClick={cancelEditSystemPrompt}
+									disabled={systemPromptBusy}
+								>
+									{t("common.cancel")}
+								</button>
+								<button
+									className="btn btn--primary btn--small"
+									onClick={() => void saveSystemPrompt()}
+									disabled={systemPromptBusy}
+								>
+									{t("common.save")}
+								</button>
+							</div>
+						</div>
+					) : systemPromptExpanded ? (
+						<pre className="mem-doc__body">{systemPrompt}</pre>
+					) : null}
+				</div>
+
 				{view.docs.length === 0 && (
 					<div className="mem-empty">{t("memory.noDocs")}</div>
 				)}
