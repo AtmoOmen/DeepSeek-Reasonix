@@ -3918,6 +3918,12 @@ func (a *App) SetToolApprovalModeForTab(tabID, mode string) {
 		a.saveTabsLocked()
 	}
 	a.mu.Unlock()
+
+	// 持久化到用户配置，使新建对话时自动沿用此模式
+	if cfg := config.LoadForEdit(config.UserConfigPath()); cfg != nil {
+		cfg.Desktop.DefaultToolApprovalMode = mode
+		_ = cfg.SaveTo(config.UserConfigPath())
+	}
 }
 
 // CommandInfo describes one available slash command for the composer's "/" menu.
